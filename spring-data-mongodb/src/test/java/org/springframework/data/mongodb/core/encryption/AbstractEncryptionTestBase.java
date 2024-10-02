@@ -18,7 +18,11 @@ package org.springframework.data.mongodb.core.encryption;
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.data.mongodb.core.EncryptionAlgorithms.*;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
+import static org.springframework.data.mongodb.core.aggregation.AggregationExpressionCriteria.whereExpr;
+import static org.springframework.data.mongodb.core.aggregation.AggregationSpELExpression.expressionOf;
+import static org.springframework.data.mongodb.core.aggregation.BooleanOperators.And.and;
 import static org.springframework.data.mongodb.core.query.Criteria.*;
+import static org.springframework.data.mongodb.core.query.Query.query;
 
 import java.security.SecureRandom;
 import java.time.LocalDate;
@@ -44,13 +48,18 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.dao.PermissionDeniedDataAccessException;
 import org.springframework.data.convert.PropertyValueConverterFactory;
+import org.springframework.data.mongodb.MongoExpression;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.BooleanOperators;
+import org.springframework.data.mongodb.core.aggregation.ComparisonOperators;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions.MongoConverterConfigurationAdapter;
 import org.springframework.data.mongodb.core.convert.encryption.MongoEncryptionConverter;
 import org.springframework.data.mongodb.core.mapping.ExplicitEncrypted;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.util.Lazy;
 
@@ -67,6 +76,7 @@ import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.vault.DataKeyOptions;
 import com.mongodb.client.vault.ClientEncryption;
 import com.mongodb.client.vault.ClientEncryptions;
+import org.springframework.expression.spel.standard.SpelExpression;
 
 /**
  * @author Christoph Strobl
@@ -75,6 +85,20 @@ import com.mongodb.client.vault.ClientEncryptions;
 public abstract class AbstractEncryptionTestBase {
 
 	@Autowired MongoTemplate template;
+
+	@Test
+	void canQueryDeterministicallyEncryptedWithQueryScope() {
+
+		Person source = new Person();
+		source.id = "id-1";
+		source.ssn = "mySecretSSN";
+
+		template.save(source);
+
+		Person loaded = template.query(Person.class).matching(where("ssn").gte(source.ssn)).firstValue();
+		assertThat(loaded).isEqualTo(source);
+	}
+
 
 	@Test // GH-4284
 	void encryptAndDecryptSimpleValue() {

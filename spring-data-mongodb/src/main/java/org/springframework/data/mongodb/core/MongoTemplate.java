@@ -2172,8 +2172,8 @@ public class MongoTemplate
 
 		List<Document> pipeline = aggregationUtil.createPipeline(aggregation, context);
 
-		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug(
+		if (LOGGER.isErrorEnabled()) {
+			LOGGER.error(
 					String.format("Executing aggregation: %s in collection %s", serializeToJsonSafely(pipeline), collectionName));
 		}
 
@@ -2595,8 +2595,8 @@ public class MongoTemplate
 		Document mappedQuery = queryContext.getMappedQuery(entity);
 		Document mappedSort = getMappedSortObject(query, entityClass);
 
-		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug(String.format("find using query: %s fields: %s sort: %s for class: %s in collection: %s",
+		if (LOGGER.isErrorEnabled()) {
+			LOGGER.error(String.format("find using query: %s fields: %s sort: %s for class: %s in collection: %s",
 					serializeToJsonSafely(mappedQuery), mappedFields, serializeToJsonSafely(mappedSort), entityClass,
 					collectionName));
 		}
@@ -2622,8 +2622,8 @@ public class MongoTemplate
 		Document mappedQuery = queryContext.getMappedQuery(entity);
 		Document mappedSort = getMappedSortObject(query, sourceClass);
 
-		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug(String.format("find using query: %s fields: %s sort: %s for class: %s in collection: %s",
+		if (LOGGER.isErrorEnabled()) {
+			LOGGER.error(String.format("find using query: %s fields: %s sort: %s for class: %s in collection: %s",
 					serializeToJsonSafely(mappedQuery), mappedFields, serializeToJsonSafely(mappedSort), sourceClass,
 					collectionName));
 		}
