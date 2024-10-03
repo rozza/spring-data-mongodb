@@ -92,6 +92,10 @@ class DocumentAccessor {
 
 		Assert.notNull(prop, "MongoPersistentProperty must not be null");
 
+		if (value == null && !prop.writeNullValues()) {
+			return;
+		}
+
 		Iterator<String> parts = Arrays.asList(prop.getMongoField().getName().parts()).iterator();
 		Bson document = this.document;
 
@@ -172,4 +176,5 @@ class DocumentAccessor {
 
 		return nested;
 	}
+
 }

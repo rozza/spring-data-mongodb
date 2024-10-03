@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.*;
 import org.bson.BsonDocument;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.mockito.Mockito;
+
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -80,15 +80,13 @@ class MongoExceptionTranslatorUnitTests {
 	void translateSocketExceptionSubclasses() {
 
 		expectExceptionWithCauseMessage(
-				translator.translateExceptionIfPossible(
-						new MongoSocketWriteException("intermediate message", new ServerAddress(), new Exception(EXCEPTION_MESSAGE))
-				),
+				translator.translateExceptionIfPossible(new MongoSocketWriteException("intermediate message",
+						new ServerAddress(), new Exception(EXCEPTION_MESSAGE))),
 				DataAccessResourceFailureException.class, EXCEPTION_MESSAGE);
 
 		expectExceptionWithCauseMessage(
-				translator.translateExceptionIfPossible(
-						new MongoSocketReadTimeoutException("intermediate message", new ServerAddress(), new Exception(EXCEPTION_MESSAGE))
-				),
+				translator.translateExceptionIfPossible(new MongoSocketReadTimeoutException("intermediate message",
+						new ServerAddress(), new Exception(EXCEPTION_MESSAGE))),
 				DataAccessResourceFailureException.class, EXCEPTION_MESSAGE);
 
 	}
@@ -170,6 +168,29 @@ class MongoExceptionTranslatorUnitTests {
 		checkTranslatedMongoException(MongoTransactionException.class, 257);
 		checkTranslatedMongoException(MongoTransactionException.class, 263);
 		checkTranslatedMongoException(MongoTransactionException.class, 267);
+	}
+
+	@Test // DATAMONGO-2073
+	public void translateTransientTransactionExceptions() {
+
+		MongoException source = new MongoException(267, "PreparedTransactionInProgress");
+		source.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+
+		expectExceptionWithCauseMessage(translator.translateExceptionIfPossible(source),
+				UncategorizedMongoDbException.class,
+				"PreparedTransactionInProgress");
+		assertThat(translator.isTransientFailure(source)).isTrue();
+		assertThat(translator.isTransientFailure(translator.translateExceptionIfPossible(source))).isTrue();
+	}
+
+	@Test // DATAMONGO-2073
+	public void translateMongoExceptionWithTransientLabel() {
+
+		MongoException exception = new MongoException(0, "");
+		exception.addLabel(MongoException.UNKNOWN_TRANSACTION_COMMIT_RESULT_LABEL);
+		DataAccessException translatedException = translator.translateExceptionIfPossible(exception);
+
+		expectExceptionWithCauseMessage(translatedException, UncategorizedMongoDbException.class);
 	}
 
 	private void checkTranslatedMongoException(Class<? extends Exception> clazz, int code) {

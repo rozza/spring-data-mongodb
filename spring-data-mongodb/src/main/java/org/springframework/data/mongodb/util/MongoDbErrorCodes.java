@@ -19,6 +19,8 @@ import java.util.HashMap;
 
 import org.springframework.lang.Nullable;
 
+import com.mongodb.MongoException;
+
 /**
  * {@link MongoDbErrorCodes} holds MongoDB specific error codes outlined in {@literal mongo/base/error_codes.yml}.
  *
@@ -97,6 +99,7 @@ public final class MongoDbErrorCodes {
 		invalidDataAccessApiUsageException.put(72, "InvalidOptions");
 		invalidDataAccessApiUsageException.put(115, "CommandNotSupported");
 		invalidDataAccessApiUsageException.put(116, "DocTooLargeForCapped");
+		invalidDataAccessApiUsageException.put(10003, "CannotGrowDocumentInCappedNamespace");
 		invalidDataAccessApiUsageException.put(130, "SymbolNotFound");
 		invalidDataAccessApiUsageException.put(17280, "KeyTooLong");
 		invalidDataAccessApiUsageException.put(13334, "ShardKeyTooBig");
@@ -114,20 +117,21 @@ public final class MongoDbErrorCodes {
 		clientSessionCodes = new HashMap<>(4, 1f);
 		clientSessionCodes.put(206, "NoSuchSession");
 		clientSessionCodes.put(213, "DuplicateSession");
+		clientSessionCodes.put(217, "IncompleteTransactionHistory");
+		clientSessionCodes.put(225, "TransactionTooOld");
 		clientSessionCodes.put(228, "SessionTransferIncomplete");
+		clientSessionCodes.put(244, "TransactionAborted");
+		clientSessionCodes.put(251, "NoSuchTransaction");
+		clientSessionCodes.put(256, "TransactionCommitted");
+		clientSessionCodes.put(257, "TransactionToLarge");
+		clientSessionCodes.put(261, "TooManyLogicalSessions");
+		clientSessionCodes.put(263, "OperationNotSupportedInTransaction");
 		clientSessionCodes.put(264, "TooManyLogicalSessions");
 
-		transactionCodes = new HashMap<>(8, 1f);
-		transactionCodes.put(217, "IncompleteTransactionHistory");
-		transactionCodes.put(225, "TransactionTooOld");
-		transactionCodes.put(244, "TransactionAborted");
-		transactionCodes.put(251, "NoSuchTransaction");
-		transactionCodes.put(256, "TransactionCommitted");
-		transactionCodes.put(257, "TransactionToLarge");
-		transactionCodes.put(263, "OperationNotSupportedInTransaction");
-		transactionCodes.put(267, "PreparedTransactionInProgress");
-
-		errorCodes = new HashMap<>();
+		errorCodes = new HashMap<>(
+				dataAccessResourceFailureCodes.size() + dataIntegrityViolationCodes.size() + duplicateKeyCodes.size()
+						+ invalidDataAccessApiUsageException.size() + permissionDeniedCodes.size() + clientSessionCodes.size(),
+				1f);
 		errorCodes.putAll(dataAccessResourceFailureCodes);
 		errorCodes.putAll(dataIntegrityViolationCodes);
 		errorCodes.putAll(duplicateKeyCodes);
@@ -136,29 +140,103 @@ public final class MongoDbErrorCodes {
 		errorCodes.putAll(clientSessionCodes);
 	}
 
+	@Nullable
+	public static String getErrorDescription(@Nullable Integer errorCode) {
+		return errorCode == null ? null : errorCodes.get(errorCode);
+	}
+
 	public static boolean isDataIntegrityViolationCode(@Nullable Integer errorCode) {
 		return errorCode != null && dataIntegrityViolationCodes.containsKey(errorCode);
+	}
+
+	/**
+	 * @param exception can be {@literal null}.
+	 * @return
+	 * @since 4.4
+	 */
+	public static boolean isDataIntegrityViolationError(Exception exception) {
+
+		if (exception instanceof MongoException me) {
+			return isDataIntegrityViolationCode(me.getCode());
+		}
+		return false;
 	}
 
 	public static boolean isDataAccessResourceFailureCode(@Nullable Integer errorCode) {
 		return errorCode != null && dataAccessResourceFailureCodes.containsKey(errorCode);
 	}
 
+	/**
+	 * @param exception can be {@literal null}.
+	 * @return
+	 * @since 4.4
+	 */
+	public static boolean isDataAccessResourceError(Exception exception) {
+
+		if (exception instanceof MongoException me) {
+			return isDataAccessResourceFailureCode(me.getCode());
+		}
+		return false;
+	}
+
 	public static boolean isDuplicateKeyCode(@Nullable Integer errorCode) {
 		return errorCode != null && duplicateKeyCodes.containsKey(errorCode);
+	}
+
+	/**
+	 * @param exception can be {@literal null}.
+	 * @return
+	 * @since 4.4
+	 */
+	public static boolean isDuplicateKeyError(Exception exception) {
+
+		if (exception instanceof MongoException me) {
+			return isDuplicateKeyCode(me.getCode());
+		}
+		return false;
+	}
+
+	/**
+	 * @param exception can be {@literal null}.
+	 * @return
+	 * @since 4.4
+	 */
+	public static boolean isDataDuplicateKeyError(Exception exception) {
+		return isDuplicateKeyError(exception);
 	}
 
 	public static boolean isPermissionDeniedCode(@Nullable Integer errorCode) {
 		return errorCode != null && permissionDeniedCodes.containsKey(errorCode);
 	}
 
+	/**
+	 * @param exception can be {@literal null}.
+	 * @return
+	 * @since 4.4
+	 */
+	public static boolean isPermissionDeniedError(Exception exception) {
+
+		if (exception instanceof MongoException) {
+			return isPermissionDeniedCode(((MongoException) exception).getCode());
+		}
+		return false;
+	}
+
 	public static boolean isInvalidDataAccessApiUsageCode(@Nullable Integer errorCode) {
 		return errorCode != null && invalidDataAccessApiUsageException.containsKey(errorCode);
 	}
 
-	@Nullable
-	public static String getErrorDescription(@Nullable Integer errorCode) {
-		return errorCode == null ? null : errorCodes.get(errorCode);
+	/**
+	 * @param exception can be {@literal null}.
+	 * @return
+	 * @since 4.4
+	 */
+	public static boolean isInvalidDataAccessApiUsageError(Exception exception) {
+
+		if (exception instanceof MongoException me) {
+			return isInvalidDataAccessApiUsageCode(me.getCode());
+		}
+		return false;
 	}
 
 	/**
@@ -181,5 +259,18 @@ public final class MongoDbErrorCodes {
 	 */
 	public static boolean isTransactionFailureCode(@Nullable Integer errorCode) {
 		return errorCode != null && transactionCodes.containsKey(errorCode);
+	}
+
+	/**
+	 * @param exception can be {@literal null}.
+	 * @return
+	 * @since 4.4
+	 */
+	public static boolean isClientSessionFailure(Exception exception) {
+
+		if (exception instanceof MongoException me) {
+			return isClientSessionFailureCode(me.getCode());
+		}
+		return false;
 	}
 }
