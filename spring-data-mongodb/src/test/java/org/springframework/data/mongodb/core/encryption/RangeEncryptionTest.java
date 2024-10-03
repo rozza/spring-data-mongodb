@@ -88,6 +88,18 @@ public class RangeEncryptionTest {
 	@Autowired MongoTemplate template;
     // TODO
 	/*
+
+	Todo:
+
+- [X] Add {{encryptedFields}} suppoort to {{CreateCollectionOptions}}
+- [ ] Add {{contentionFactor}} to {{EncryptOptions}}
+- [ ] Add {{queryType}} to {{EncryptOptions}}
+- [ ] Add {{RangeOptions}} to {{EncryptOptions}}
+- [ ] Add {{rangeOptions}} (String / JSON) to {{ExplicitEncrypted}} annotation
+- [ ] Add {{Range}} and {{Indexed}} to encryption algorithms.
+- [ ] Add {{encryptExpression}} support to {{EncryptingConverter}}
+- [ ] Add test cases from the [Test Plan
+
 		Test Plan
 
 		Setup:
